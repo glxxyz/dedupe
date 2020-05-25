@@ -16,8 +16,9 @@ type MatchOptions interface {
 	Size() bool
 	Hash() bool
 	Contents() bool
+	MinBytes() int64
+	SymLinks() bool
 	Verbose() bool
-	IgnoreZero() bool
 	Paths() []string
 }
 

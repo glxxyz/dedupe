@@ -8,6 +8,8 @@ type Options struct {
 	size        bool
 	hash        bool
 	contents    bool
+	minBytes    int64
+	symLinks    bool
 	verbose     bool
 	scanBuffer  int
 	scanners    int
@@ -15,7 +17,6 @@ type Options struct {
 	matchers    int
 	moveBuffer  int
 	movers      int
-	ignoreZero  bool
 	paths       []string
 }
 
@@ -49,6 +50,14 @@ func (options *Options) Contents() bool {
 	return options.contents
 }
 
+func (options *Options) MinBytes() int64 {
+	return options.minBytes
+}
+
+func (options *Options) SymLinks() bool {
+	return options.symLinks
+}
+
 func (options *Options) Verbose() bool {
 	return options.verbose
 }
@@ -75,10 +84,6 @@ func (options *Options) MoveBuffer() int {
 
 func (options *Options) Movers() int {
 	return options.movers
-}
-
-func (options *Options) IgnoreZero() bool {
-	return options.ignoreZero
 }
 
 func (options *Options) Paths() []string {

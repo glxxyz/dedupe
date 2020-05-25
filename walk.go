@@ -21,7 +21,6 @@ func walkFunc(options repo.MatchOptions, files chan<- *repo.FileData) func(path 
 			errLog.Printf("failed to access path %q: %v\n", path, err)
 			return nil
 		}
-
 		if visited(path) {
 			if options.Verbose() {
 				fmt.Printf("already visited: %q\n", path)
@@ -31,13 +30,11 @@ func walkFunc(options repo.MatchOptions, files chan<- *repo.FileData) func(path 
 			if options.Verbose() {
 				fmt.Printf("visiting dir: %q\n", path)
 			}
-		} else if info.Mode() & os.ModeSymlink != 0{
+		} else if info.Mode() & os.ModeSymlink != 0 {
+			walkSymLink(options, path, files)
+		} else if info.Size() < options.MinBytes() {
 			if options.Verbose() {
-				fmt.Printf("ignoring symbolic link: %q\n", path)
-			}
-		} else if !options.IgnoreZero() && info.Size() == 0 {
-			if options.Verbose() {
-				fmt.Printf("ignoring zero size file: %q\n", path)
+				fmt.Printf("ignoring file size %v bytes: %q\n", info.Size(), path)
 			}
 		} else {
 			if options.Verbose() {
@@ -46,6 +43,22 @@ func walkFunc(options repo.MatchOptions, files chan<- *repo.FileData) func(path 
 			files <- repo.NewFile(options, path, info)
 		}
 		return nil
+	}
+}
+
+func walkSymLink(options repo.MatchOptions, path string, files chan<- *repo.FileData) {
+	if options.SymLinks() {
+		dest, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			errLog.Printf("failed to evaluate symbolic link %q: %v\n", path, err)
+		} else {
+			if options.Verbose() {
+				fmt.Printf("following symbolic link: %q to %q\n", path, dest)
+			}
+			Walk(options, dest, files)
+		}
+	} else if options.Verbose() {
+		fmt.Printf("ignoring symbolic link: %q\n", path)
 	}
 }
 
