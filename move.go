@@ -23,6 +23,6 @@ func Move(options MoveOptions, filePath string) {
 			errLog.Printf("error moving file from: %q to: %q: %v\n", filePath, destPath, err)
 		}
 	} else {
-		fmt.Printf("Would Move:\t%q\n", filePath)
+		fmt.Printf("Move:\t%q\n", filePath)
 	}
 }

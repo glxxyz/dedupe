@@ -13,17 +13,17 @@ import (
 var errLog = log.New(os.Stderr, "", 0)
 
 var versionMessage = `
-dedupe version 1.02
+dedupe version 1.03
 Copyright 2020 Alan Davies <alan@galax.xyz>
 Distributed under the MIT license <https://opensource.org/licenses/MIT>.
-See <https://github.com/glxxyz/dupes> for documentation and help.
+See <https://github.com/glxxyz/dedupe> for documentation and help.
 `
 
 var usageMessage = `
 Usage: dedupe [OPTION] DIRECTORY...
        dedupe --trash=<trash> [OPTION]... DIRECTORY...
 
-Search DIRECTORY(ies)... for duplicate files and optionally moves them to to <trash> without user interaction.
+Search DIRECTORY(ies)... for duplicate files and optionally moves them to <trash> without user interaction.
 
 DIRECTORY order is used for priority, highest first. Higher priority files are left untouched and lower priority files are moved. 
 
@@ -37,7 +37,7 @@ Options:
         --compare-hash      compare file hash (default: true)
         --compare-contents  compare whole file contents (default: false)
         --min-size          minimum file size, bytes or human readable e.g. 4M, 5G (default 1)
-		--follow-symlinks   follow symbolic links, false ignores them (default false)
+        --follow-symlinks   follow symbolic links, false ignores them (default false)
         --verbose           emit verbose information (default: false)
         --version           output version and license information and exit
 
