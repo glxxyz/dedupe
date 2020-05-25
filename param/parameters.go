@@ -1,36 +1,36 @@
 package param
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 )
 
 var errLog = log.New(os.Stderr, "", 0)
 
 var versionMessage = `
-dedupe version 1.01
+dedupe version 1.02
 Copyright 2020 Alan Davies <alan@galax.xyz>
 Distributed under the MIT license <https://opensource.org/licenses/MIT>.
 See <https://github.com/glxxyz/dupes> for documentation and help.
 `
 
 var usageMessage = `
-Usage: dedupe [OPTION] PATH...
-       dedupe --move-files --trash=<trash> [OPTION] PATH...
+Usage: dedupe [OPTION] DIRECTORY...
+       dedupe --trash=<trash> [OPTION]... DIRECTORY...
 
-Find PATH... for duplicate files and moves them to to <trash> without user interaction. If multiple PATHs are specified their order is used for priority, highest first.
+Search DIRECTORY(ies)... for duplicate files and optionally moves them to to <trash> without user interaction.
+
+DIRECTORY order is used for priority, highest first. Higher priority files are left untouched and lower priority files are moved. 
 
 Mandatory parameters:
 
 Options:
-        --move-files        actually move files, otherwise just output (default: false)
-        --trash             root directory for 'trashed' files, mandatory if moving files
+        --trash             root directory for moved duplicates, (default: files not moved)
         --compare-time      compare file modification time (default: false)
         --compare-name      compare file name (default: false)
         --compare-size      compare file size (default: true)
@@ -53,7 +53,7 @@ Advanced options:
 See <https://github.com/glxxyz/dedupe> for documentation and help.
 `
 
-func ParseParameters() *Options {
+func ParseParameters() (*Options, error) {
 
 	if len(os.Args) < 2 {
 		fmt.Print(usageMessage)
@@ -61,7 +61,6 @@ func ParseParameters() *Options {
 	}
 
 	trash := flag.String("trash", "", "directory for 'trashed' files")
-	doMove := flag.Bool("move-files", false, "if set will move files, otherwise just output")
 	modTime := flag.Bool("compare-time", false, "compare file modification time")
 	name := flag.Bool("compare-name", false, "compare file name")
 	size := flag.Bool("compare-size", true, "compare file size")
@@ -83,40 +82,30 @@ func ParseParameters() *Options {
 
 	if *version {
 		fmt.Print(versionMessage)
-		os.Exit(0)
-	}
-
-	if *trash == "" && *doMove {
-		errLog.Print("when moving files a trash path must be specified with --trash=")
-		os.Exit(1)
-	}
-
-	if *trash != "" && !*doMove {
-		errLog.Print("When specifying a trash directory you must also set --move-files")
-		os.Exit(1)
+		return nil, nil
 	}
 
 	if !(*modTime || *name || *size || *hash || *contents) {
-		errLog.Print("at least one compare- option must be true")
-		os.Exit(1)
+		return nil, errors.New("at least one compare- option must be true")
 	}
 
 	if *contents && !*hash {
-		errLog.Print("when compare-contents=true then compare-hash=true must also be set")
-		os.Exit(1)
+		return nil, errors.New("when compare-contents=true then compare-hash=true must also be set")
 	}
 
 	if *hash && !*size {
-		errLog.Print("when compare-hash=true then compare-size=true must also be set")
-		os.Exit(1)
+		return nil, errors.New("when compare-hash=true then compare-size=true must also be set")
 	}
 
 	if len(flag.Args()) < 1 {
-		errLog.Print("at least one path to scan must be passed in")
-		os.Exit(1)
+		return nil, errors.New("at least one directory to scan must be passed in")
 	}
 
-	minBytes := parseMinSize(*minSize)
+	minBytes, err := parseHumanReadableSize(*minSize)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse miniumum size: %w", err)
+	}
+
 	if *verbose {
 		fmt.Printf("minimum file size in bytes: %v\n", minBytes)
 	}
@@ -126,12 +115,10 @@ func ParseParameters() *Options {
 		if absolute, err := filepath.Abs(*trash); err == nil {
 			absoluteTrash = absolute
 		} else {
-			errLog.Printf("failed to get an absolute path for %q: %v\n", *trash, err)
-			panic(err)
+			return nil, fmt.Errorf("failed to get an absolute path for %q: %w", *trash, err)
 		}
 		if _, err := os.Stat(absoluteTrash); os.IsNotExist(err) {
-			errLog.Printf("trash path does not exist: %s\n", *trash)
-			panic(err)
+			return nil, fmt.Errorf("trash path does not exist: %s\n", *trash)
 		}
 	}
 
@@ -143,8 +130,7 @@ func ParseParameters() *Options {
 			}
 			absolutePaths[i] = absolute
 		} else {
-			errLog.Printf("failed to get an absolute path for %q: %v\n", path, err)
-			panic(err)
+			return nil,fmt.Errorf("failed to get an absolute path for %q: %w", path, err)
 		}
 	}
 
@@ -164,7 +150,7 @@ func ParseParameters() *Options {
 
 	return &Options{
 		trash:       absoluteTrash,
-		doMove:      *doMove,
+		doMove:      *trash != "",
 		modTime:     *modTime,
 		name:        *name,
 		size:        *size,
@@ -180,46 +166,5 @@ func ParseParameters() *Options {
 		moveBuffer:  *moveBuffer,
 		movers:      *movers,
 		paths:       absolutePaths,
-	}
-}
-
-func parseMinSize(minSize string) int64 {
-	scaleFactor := 1.0
-	switch minSize[len(minSize)-1] {
-	case 'K': // kibibyte
-		scaleFactor = 1024
-		minSize = minSize[:len(minSize)-1]
-	case 'M': // mebibyte
-		scaleFactor *= math.Pow(1024, 2)
-		minSize = minSize[:len(minSize)-1]
-	case 'G': // gibibyte
-		scaleFactor *= math.Pow(1024, 3)
-		minSize = minSize[:len(minSize)-1]
-	case 'T': // tebibyte
-		scaleFactor *= math.Pow(1024, 4)
-		minSize = minSize[:len(minSize)-1]
-	case 'P': // pebibyte
-		scaleFactor *= math.Pow(1024, 5)
-		minSize = minSize[:len(minSize)-1]
-	case 'E': // exbibyte
-		scaleFactor *= math.Pow(1024, 6)
-		minSize = minSize[:len(minSize)-1]
-	case 'Z': // zebibyte
-		scaleFactor *= math.Pow(1024, 7)
-		minSize = minSize[:len(minSize)-1]
-	case 'Y': // yobibyte
-		scaleFactor *= math.Pow(1024, 8)
-		minSize = minSize[:len(minSize)-1]
-	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		break
-	default:
-		errLog.Print("min-size can be an integer number of bytes or a floating point value with a human readable size e.g. 1.5K, 3M, 4G, 4.2T")
-		os.Exit(1)
-	}
-	floatVal, err := strconv.ParseFloat(minSize, 64)
-	if err != nil {
-		errLog.Printf("failed to parse min size: %v\n", err)
-		panic(err)
-	}
-	return int64(math.Round(floatVal * scaleFactor))
+	}, nil
 }

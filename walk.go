@@ -1,8 +1,8 @@
 package main
 
 import (
-	"./repo"
 	"fmt"
+	"github.com/glxxyz/dedupe/repo"
 	"os"
 	"path/filepath"
 	"sync"
@@ -10,8 +10,7 @@ import (
 
 func Walk(options repo.MatchOptions, root string, files chan<- *repo.FileData) {
 	if err := filepath.Walk(root, walkFunc(options, files)); err != nil {
-		errLog.Printf("error walking path %q: %v\n", root, err)
-		panic(err)
+		panic(fmt.Errorf("error walking path %q: %v\n", root, err))
 	}
 }
 
@@ -30,7 +29,7 @@ func walkFunc(options repo.MatchOptions, files chan<- *repo.FileData) func(path 
 			if options.Verbose() {
 				fmt.Printf("visiting dir: %q\n", path)
 			}
-		} else if info.Mode() & os.ModeSymlink != 0 {
+		} else if info.Mode()&os.ModeSymlink != 0 {
 			walkSymLink(options, path, files)
 		} else if info.Size() < options.MinBytes() {
 			if options.Verbose() {

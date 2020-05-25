@@ -11,7 +11,7 @@ type matchFullHash struct {
 	filePaths []string
 }
 
-func (fullHash *matchFullHash) lowestPriorityMatch(options MatchOptions, filePath string)  (string, bool) {
+func (fullHash *matchFullHash) lowestPriorityMatch(options MatchOptions, filePath string) (string, bool) {
 	fullHash.lock.Lock()
 	defer fullHash.lock.Unlock()
 	for num, testPath := range fullHash.filePaths {
@@ -44,4 +44,3 @@ func firstIsHigherPriority(priorityPaths []string, first string, second string) 
 	}
 	return first < second
 }
-

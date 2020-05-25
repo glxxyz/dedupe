@@ -8,7 +8,14 @@ import (
 	"os"
 )
 
-func calculateHeadHash(options MatchOptions, path string) (uint32, error) {
+type HashOptions interface {
+	Hash() bool
+	Contents() bool
+	Verbose() bool
+}
+
+// The idea of hashing the first few bytes came from https://stackoverflow.com/questions/748675/finding-duplicate-files-and-removing-them
+func calculateHeadHash(options HashOptions, path string) (uint32, error) {
 	if !options.Hash() {
 		return 0, nil
 	}
@@ -27,7 +34,7 @@ func calculateHeadHash(options MatchOptions, path string) (uint32, error) {
 	return crc32.ChecksumIEEE(data), nil
 }
 
-func calculateFullHash(options MatchOptions, path string) (uint64, error) {
+func calculateFullHash(options HashOptions, path string) (uint64, error) {
 	if !options.Hash() {
 		return 0, nil
 	}
@@ -37,7 +44,7 @@ func calculateFullHash(options MatchOptions, path string) (uint64, error) {
 		return 0, err
 	}
 	defer file.Close()
-	data := make([]byte, 8 * 1024)
+	data := make([]byte, 8*1024)
 	table := crc64.MakeTable(crc64.ECMA)
 	var crc uint64
 	for {
@@ -72,8 +79,8 @@ func fullByteMatch(options MatchOptions, pathA string, pathB string) (bool, erro
 	}
 	defer fileB.Close()
 
-	dataA := make([]byte, 8 * 1024)
-	dataB := make([]byte, 8 * 1024)
+	dataA := make([]byte, 8*1024)
+	dataB := make([]byte, 8*1024)
 
 	for {
 		bytesA, err := fileA.Read(dataA)
@@ -83,7 +90,7 @@ func fullByteMatch(options MatchOptions, pathA string, pathB string) (bool, erro
 		}
 
 		bytesB, err := fileB.Read(dataB)
-		if  err != nil && err != io.EOF {
+		if err != nil && err != io.EOF {
 			errLog.Printf("error reading from file: %v\n", err)
 			return false, err
 		}

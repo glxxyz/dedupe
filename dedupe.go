@@ -1,8 +1,9 @@
 package main
 
 import (
-	"./param"
 	"fmt"
+	"github.com/glxxyz/dedupe/param"
+	"github.com/glxxyz/dedupe/repo"
 	"log"
 	"os"
 )
@@ -10,10 +11,14 @@ import (
 var errLog = log.New(os.Stderr, "", 0)
 
 func main() {
-	options := param.ParseParameters()
-	if options.Verbose() {
-		fmt.Printf("options: %+v\n", options)
+	if options, err := param.ParseParameters(); err == nil && options != nil {
+		if options.Verbose() {
+			fmt.Printf("options: %+v\n", options)
+		}
+		var matchRepo repo.MatchRepository
+		scanForDuplicates(options, &matchRepo)
+	} else if err != nil {
+		errLog.Print(err)
+		os.Exit(1)
 	}
-	scanForDuplicates(options)
 }
-

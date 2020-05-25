@@ -1,13 +1,13 @@
 package main
 
 import (
-	"./param"
-	"./repo"
 	"fmt"
+	"github.com/glxxyz/dedupe/param"
+	"github.com/glxxyz/dedupe/repo"
 	"sync"
 )
 
-func scanForDuplicates(options *param.Options) {
+func scanForDuplicates(options *param.Options, matchRepo *repo.MatchRepository) {
 	var scanners sync.WaitGroup
 	var matchers sync.WaitGroup
 	var movers sync.WaitGroup
@@ -17,7 +17,7 @@ func scanForDuplicates(options *param.Options) {
 	var moves = make(chan string, options.MoveBuffer())
 
 	spawnScanners(options, &scanners, scans, files)
-	spawnMatchers(options, &matchers, files, moves)
+	spawnMatchers(options, matchRepo, &matchers, files, moves)
 	spawnMovers(options, &movers, moves)
 	seedScanners(options, scans)
 
@@ -62,17 +62,17 @@ func scanWorker(num int, options *param.Options, scans <-chan string, files chan
 	}
 }
 
-func spawnMatchers(options *param.Options, matchers *sync.WaitGroup, files <-chan *repo.FileData, moves chan<- string) {
+func spawnMatchers(options *param.Options, matchRepo *repo.MatchRepository, matchers *sync.WaitGroup, files <-chan *repo.FileData, moves chan<- string) {
 	for i := 0; i < options.Matchers(); i++ {
 		matchers.Add(1)
 		go func(num int) {
 			defer matchers.Done()
-			matchWorker(num, options, files, moves)
+			matchWorker(num, options, matchRepo, files, moves)
 		}(i)
 	}
 }
 
-func matchWorker(num int, options *param.Options, files <-chan *repo.FileData, moves chan<- string) {
+func matchWorker(num int, options *param.Options, matchRepo *repo.MatchRepository, files <-chan *repo.FileData, moves chan<- string) {
 	if options.Verbose() {
 		fmt.Printf("matcher %d starting\n", num)
 	}
@@ -82,7 +82,7 @@ func matchWorker(num int, options *param.Options, files <-chan *repo.FileData, m
 			if options.Verbose() {
 				fmt.Printf("matcher %d working on file: %v\n", num, file)
 			}
-			if fileToMove, found := repo.MatchFileToMove(options, file); found {
+			if fileToMove, found := matchRepo.MatchFileToMove(options, file); found {
 				moves <- fileToMove
 			}
 		} else {

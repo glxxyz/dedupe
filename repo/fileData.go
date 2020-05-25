@@ -6,8 +6,8 @@ import (
 )
 
 type FileData struct {
-	FilePath string
-	Name     string
+	filePath string
+	name     string
 	size     int64
 	modTime  time.Time
 }
@@ -26,8 +26,8 @@ func NewFile(options MatchOptions, filePath string, info os.FileInfo) *FileData 
 		size = info.Size()
 	}
 	return &FileData{
-		FilePath: filePath,
-		Name:     name,
+		filePath: filePath,
+		name:     name,
 		size:     size,
 		modTime:  modTime,
 	}
