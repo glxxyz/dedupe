@@ -17,14 +17,18 @@ func (fullHash *matchFullHash) lowestPriorityMatch(options MatchOptions, filePat
 	for num, testPath := range fullHash.filePaths {
 		match, _ := fullByteMatch(options, testPath, filePath)
 		if match {
+			var higher, lower string
 			if firstIsHigherPriority(options.Paths(), testPath, filePath) {
-				fmt.Printf("Dupe:\t%q\t%q\n", testPath, filePath)
-				return filePath, true
+				higher, lower = testPath, filePath
 			} else {
 				fullHash.filePaths[num] = filePath
-				fmt.Printf("Dupe:\t%q\t%q\n", filePath, testPath)
-				return testPath, true
+				higher, lower = filePath, testPath
 			}
+			fmt.Printf(
+				"Dupe:\t%v\t%v\n",
+				strings.Replace(higher, " ", "\\ ", -1),
+				strings.Replace(lower, " ", "\\ ", -1))
+			return lower, true
 		}
 	}
 	// There was no match, this implies a hash collision or a problem comparing the file

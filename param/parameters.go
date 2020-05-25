@@ -13,7 +13,7 @@ import (
 var errLog = log.New(os.Stderr, "", 0)
 
 var versionMessage = `
-dedupe version 1.03
+dedupe version 1.04
 Copyright 2020 Alan Davies <alan@galax.xyz>
 Distributed under the MIT license <https://opensource.org/licenses/MIT>.
 See <https://github.com/glxxyz/dedupe> for documentation and help.

@@ -1,0 +1,12 @@
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+To test a full hash over 1024 beginning characters of LongFileA.txt and LongFileB.txt are the same.
+After that, LongFileB has its own stuff like this.
