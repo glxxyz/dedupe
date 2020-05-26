@@ -2,7 +2,7 @@
 
 ![Go](https://github.com/glxxyz/dedupe/workflows/Go/badge.svg)
 
-A tool for efficiently scanning over large numbers of files, to find and remove duplicates.
+A tool for efficiently scanning over large numbers of files, to find and remove duplicates. Mac, Linux, and Windows binaries are [here](https://github.com/glxxyz/dedupe/tree/master/bin).
 
 I wrote this for a bit of practice using Go, and to help me finally get around to cleaning up that mess of photo backups.
 
@@ -29,6 +29,14 @@ It decides what to move based on the order of the directories- higher priority f
 If I have some directories within /backup that are better organised even than my main `/photos` directory I can make those higher priority:
 
     dedupe --trash=/trash /backup/2015move /backup/2020aprilfun /photos /backup /unsorted
+
+## Downloads
+
+If you don't want to build it yourself you can pull down a precompiled binary from here:
+
+* [linux-amd64 latest build](https://github.com/glxxyz/dedupe/raw/master/bin/linux-amd64/dedupe)
+* [macos-amd64 latest build](https://github.com/glxxyz/dedupe/raw/master/bin/macos-amd64/dedupe)
+* [windows-amd64 latest build](https://github.com/glxxyz/dedupe/raw/master/bin/macos-amd64/dedupe.exe)
 
 ## Options
 
