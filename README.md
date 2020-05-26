@@ -1,5 +1,7 @@
 # dedupe
 
+![Go](https://github.com/glxxyz/dedupe/workflows/Go/badge.svg)
+
 A tool for efficiently scanning over large numbers of files, to find and remove duplicates.
 
 I wrote this for a bit of practice using Go, and to help me finally get around to cleaning up that mess of photo backups.
