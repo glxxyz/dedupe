@@ -27,7 +27,7 @@ func parseHumanReadableSize(humanReadable string) (int64, error) {
 	shift, ok := suffixToShift[suffix]
 	if ok {
 		scaleString = string(runes[:len(runes)-1])
-	} else if unicode.IsDigit(rune(suffix)) {
+	} else if unicode.IsDigit(suffix) {
 		scaleString = humanReadable
 		shift = 0
 	} else {

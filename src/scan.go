@@ -5,6 +5,7 @@ import (
 	"github.com/glxxyz/dedupe/param"
 	"github.com/glxxyz/dedupe/repo"
 	"sync"
+	"time"
 )
 
 func scanForDuplicates(options *param.Options, matchRepo *repo.MatchRepository) {
@@ -21,12 +22,29 @@ func scanForDuplicates(options *param.Options, matchRepo *repo.MatchRepository) 
 	spawnMovers(options, &movers, moves)
 	seedScanners(options, scans)
 
+	spawnChannelTicker(options, scans, files, moves)
+
 	close(scans)
 	scanners.Wait()
 	close(files)
 	matchers.Wait()
 	close(moves)
 	movers.Wait()
+}
+
+func spawnChannelTicker(options *param.Options, scans chan string, files chan *repo.FileData, moves chan string) {
+	if options.Verbose() {
+		ticker := time.NewTicker(time.Second)
+		go func() {
+			for {
+				select {
+				case <-ticker.C:
+					fmt.Printf("Channels:\tscans=%d/%d\tfiles=%d/%d\tmoves=%d/%d\n",
+						len(scans), cap(scans), len(files), cap(files), len(moves), cap(moves))
+				}
+			}
+		}()
+	}
 }
 
 func seedScanners(options *param.Options, scans chan<- string) {

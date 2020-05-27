@@ -13,7 +13,7 @@ import (
 var errLog = log.New(os.Stderr, "", 0)
 
 var versionMessage = `
-dedupe version 1.04
+dedupe version 1.05
 Copyright 2020 Alan Davies <alan@galax.xyz>
 Distributed under the MIT license <https://opensource.org/licenses/MIT>.
 See <https://github.com/glxxyz/dedupe> for documentation and help.
@@ -43,12 +43,11 @@ Options:
 
 Advanced options:
         --scan-buffer       size of the scan buffer (default: 100)
-        --scanners          number of scanner coroutines (default: 2)
+        --scanners          number of scanner coroutines (default: 10)
         --match-buffer      size of the match buffer (default: 100)
         --matchers          number of matcher coroutines (default: 4)
         --move-buffer       size of the move buffer (default: 100)
-        --movers            number of mover coroutines (default: 2)
-        --max-cpus          maximum CPUs to use (default: system setting)
+        --movers            number of mover coroutines (default: 10)
 
 See <https://github.com/glxxyz/dedupe> for documentation and help.
 `
@@ -71,12 +70,11 @@ func ParseParameters() (*Options, error) {
 	verbose := flag.Bool("verbose", false, "emit verbose information")
 	version := flag.Bool("version", false, "output version and license information and exit")
 	scanBuffer := flag.Int("scan-buffer", 100, "size of the scan buffer")
-	scanners := flag.Int("scanners", 2, " number of scanner coroutines")
+	scanners := flag.Int("scanners", 10, " number of scanner coroutines")
 	matchBuffer := flag.Int("match-buffer", 100, "size of the match buffer")
 	matchers := flag.Int("matchers", 4, " number of matcher coroutines")
 	moveBuffer := flag.Int("move-buffer", 100, "size of the move buffer")
-	movers := flag.Int("movers", 2, "number of mover coroutines")
-	maxProcs := flag.Int("max-cpus", 0, "maximum CPUs to use ")
+	movers := flag.Int("movers", 10, "number of mover coroutines")
 
 	flag.Parse()
 
@@ -130,22 +128,12 @@ func ParseParameters() (*Options, error) {
 			}
 			absolutePaths[i] = absolute
 		} else {
-			return nil,fmt.Errorf("failed to get an absolute path for %q: %w", path, err)
+			return nil, fmt.Errorf("failed to get an absolute path for %q: %w", path, err)
 		}
 	}
 
 	if *verbose {
 		fmt.Printf("System default is %d CPUs\n", runtime.NumCPU())
-	}
-
-	if *maxProcs > 0 {
-		if *verbose {
-			fmt.Printf("Setting GOMAXPROCS to %d CPUs\n", *maxProcs)
-		}
-		previous := runtime.GOMAXPROCS(*maxProcs)
-		if *verbose {
-			fmt.Printf("Previous GOMAXPROCS was %d CPUs\n", previous)
-		}
 	}
 
 	return &Options{

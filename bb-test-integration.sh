@@ -13,6 +13,7 @@ echo "Testing binary $DEDUPE"
 TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t "mytmpdir")
 echo "Running tests in $TMPDIR"
 
+SUCCESS=1
 TEST="$TMPDIR/test"
 TRASH="$TMPDIR/trash"
 mkdir "$TRASH"
@@ -20,36 +21,36 @@ cp -rp ./test "$TEST"
 
 assertRunSucceeded () {
     if [ $? -ne 0 ]; then
-        echo "Run command failed, exiting"
-        exit 1
+        echo "Run command failed"
+        SUCCESS=0
     fi
 }
 
 assertDirExists() {
     if [ ! -d "$1" ]; then
         echo "Assertion failed: directory $1 doesn't exist"
-        exit 1
+        SUCCESS=0
     fi
 }
 
 assertFileExists() {
     if [ ! -f "$1" ]; then
         echo "Assertion failed: file $1 doesn't exist"
-        exit 1
+        SUCCESS=0
     fi
 }
 
 assertFileDoesntExist() {
     if [ -f "$1" ]; then
         echo "Assertion failed: $1 exists"
-        exit 1
+        SUCCESS=0
     fi
 }
 
 assertFileLines() {
     if [ $(cat "$1" | wc -l) -ne "$2" ]; then
         echo "Assertion failed: File $1 has $(cat $1 | wc -l) lines, expected $2 lines"
-        exit 1
+        SUCCESS=0
     fi
 }
 
@@ -57,7 +58,7 @@ assertFileContains() {
     grep -qE "$2" "$1"
     if [ $? -ne 0 ]; then
         echo "Assertion failed: File $1 doesn't contain '$2'"
-        exit 1
+        SUCCESS=0
     fi
 }
 
@@ -174,4 +175,8 @@ assertFileDoesntExist "$TRASH/$TEST/foo/bar/LongFileB.txt"
 assertFileDoesntExist "$TRASH/$TEST/foo/bar/ShortFileB.txt"
 assertFileDoesntExist "$TRASH/$TEST/foo/bar/ShortFileALink"
 
-echo "All tests passed!"
+if [ $SUCCESS -eq 1 ]; then
+    echo "All tests passed!"
+else
+    echo "Tests failed, see output for details!"
+fi
