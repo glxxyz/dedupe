@@ -5,6 +5,7 @@ import (
 	"github.com/glxxyz/dedupe/param"
 	"github.com/glxxyz/dedupe/repo"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -17,12 +18,16 @@ func scanForDuplicates(options *param.Options, matchRepo *repo.MatchRepository) 
 	var files = make(chan *repo.FileData, options.MatchBuffer())
 	var moves = make(chan string, options.MoveBuffer())
 
-	spawnScanners(options, &scanners, scans, files)
-	spawnMatchers(options, matchRepo, &matchers, files, moves)
-	spawnMovers(options, &movers, moves)
-	seedScanners(options, scans)
+	var scanCount uint32
+	var fileCount uint32
+	var moveCount uint32
 
-	spawnChannelTicker(options, scans, files, moves)
+	spawnScanners(options, &scanners, scans, files, &fileCount)
+	spawnMatchers(options, matchRepo, &matchers, files, moves, &moveCount)
+	spawnMovers(options, &movers, moves)
+	seedScanners(options, scans, &scanCount)
+
+	spawnChannelTicker(options, scans, files, moves, &scanCount, &fileCount, &moveCount)
 
 	close(scans)
 	scanners.Wait()
@@ -32,45 +37,50 @@ func scanForDuplicates(options *param.Options, matchRepo *repo.MatchRepository) 
 	movers.Wait()
 }
 
-func spawnChannelTicker(options *param.Options, scans chan string, files chan *repo.FileData, moves chan string) {
+func spawnChannelTicker(
+	options *param.Options,
+	scans chan string, files chan *repo.FileData, moves chan string,
+	scanCount *uint32, fileCount *uint32, moveCount *uint32) {
 	if options.Verbose() {
 		ticker := time.NewTicker(time.Second)
 		go func() {
 			for {
 				select {
 				case <-ticker.C:
-					fmt.Printf("Channels:\tscans=%d/%d\tfiles=%d/%d\tmoves=%d/%d\n",
-						len(scans), cap(scans), len(files), cap(files), len(moves), cap(moves))
+					fmt.Printf(
+						"Channels:\tlen/cap/count\tscans=%d/%d/%d\tfiles=%d/%d/%d\tmoves=%d/%d/%d\n",
+						len(scans), cap(scans), *scanCount, len(files), cap(files), *fileCount, len(moves), cap(moves), *moveCount)
 				}
 			}
 		}()
 	}
 }
 
-func seedScanners(options *param.Options, scans chan<- string) {
+func seedScanners(options *param.Options, scans chan<- string, scanCount *uint32) {
 	for _, path := range options.Paths() {
 		scans <- path
+		atomic.AddUint32(scanCount, 1)
 	}
 }
 
-func spawnScanners(options *param.Options, scanners *sync.WaitGroup, scans <-chan string, files chan<- *repo.FileData) {
+func spawnScanners(options *param.Options, scanners *sync.WaitGroup, scans <-chan string, files chan<- *repo.FileData, fileCount *uint32) {
 	for i := 0; i < options.Scanners(); i++ {
 		scanners.Add(1)
 		go func(num int) {
 			defer scanners.Done()
-			scanWorker(num, options, scans, files)
+			scanWorker(num, options, scans, files, fileCount)
 		}(i)
 	}
 }
 
-func scanWorker(num int, options *param.Options, scans <-chan string, files chan<- *repo.FileData) {
+func scanWorker(num int, options *param.Options, scans <-chan string, files chan<- *repo.FileData, fileCount *uint32) {
 	if options.Verbose() {
 		fmt.Printf("scanner %d starting\n", num)
 	}
 	for {
 		path := <-scans
 		if path != "" {
-			Walk(options, path, files)
+			Walk(options, path, files, fileCount)
 		} else {
 			if options.Verbose() {
 				fmt.Printf("scanner %d done\n", num)
@@ -80,17 +90,17 @@ func scanWorker(num int, options *param.Options, scans <-chan string, files chan
 	}
 }
 
-func spawnMatchers(options *param.Options, matchRepo *repo.MatchRepository, matchers *sync.WaitGroup, files <-chan *repo.FileData, moves chan<- string) {
+func spawnMatchers(options *param.Options, matchRepo *repo.MatchRepository, matchers *sync.WaitGroup, files <-chan *repo.FileData, moves chan<- string, moveCount *uint32) {
 	for i := 0; i < options.Matchers(); i++ {
 		matchers.Add(1)
 		go func(num int) {
 			defer matchers.Done()
-			matchWorker(num, options, matchRepo, files, moves)
+			matchWorker(num, options, matchRepo, files, moves, moveCount)
 		}(i)
 	}
 }
 
-func matchWorker(num int, options *param.Options, matchRepo *repo.MatchRepository, files <-chan *repo.FileData, moves chan<- string) {
+func matchWorker(num int, options *param.Options, matchRepo *repo.MatchRepository, files <-chan *repo.FileData, moves chan<- string, moveCount *uint32) {
 	if options.Verbose() {
 		fmt.Printf("matcher %d starting\n", num)
 	}
@@ -102,6 +112,7 @@ func matchWorker(num int, options *param.Options, matchRepo *repo.MatchRepositor
 			}
 			if fileToMove, found := matchRepo.MatchFileToMove(options, file); found {
 				moves <- fileToMove
+				atomic.AddUint32(moveCount, 1)
 			}
 		} else {
 			if options.Verbose() {
